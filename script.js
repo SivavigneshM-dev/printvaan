@@ -104,17 +104,28 @@ function navigateTo(pageId) {
     .forEach((el) => el.classList.add("hidden"));
 
   // Show target page
-  document.getElementById(`${pageId}-page`).classList.remove("hidden");
+  const targetPage = document.getElementById(`${pageId}-page`);
+  if (targetPage) {
+    targetPage.classList.remove("hidden");
+  } else {
+    // If page doesn't exist, show 404 page
+    document.getElementById('not-found-page').classList.remove('hidden');
+  }
 
   // Clear active product when leaving detail page
   if (state.activeProduct && pageId !== "product-detail") {
     state.activeProduct = null;
   }
 
+  // Page-specific render functions
   if (pageId === "cart") renderCart();
   if (pageId === "admin") renderAdminPanel();
   if (pageId === "profile") renderProfilePage();
   if (pageId === "orders") renderOrdersPage();
+  if (pageId === "faq") renderFaqPage();
+
+  // Scroll to top on every navigation
+  window.scrollTo(0, 0);
 }
 
 // --- Auth Logic ---
@@ -787,6 +798,67 @@ function resetRates() {
   }
 }
 
+// --- FAQ Data & Logic ---
+const FAQS = [
+    {
+        q: "What is the turnaround time for orders?",
+        a: "Standard orders are typically processed and shipped within 2-3 business days. Bulk orders may require additional time. You will receive an email notification once your order is shipped."
+    },
+    {
+        q: "Can I cancel my order?",
+        a: "Orders can be cancelled within 1 hour of placement. Due to the custom nature of our products, we cannot cancel orders once they have entered the production phase. Please see our Cancellation Policy for more details."
+    },
+    {
+        q: "What file formats do you accept for designs?",
+        a: "We recommend high-resolution PDF, AI, or EPS files for the best quality. We also accept high-quality JPG and PNG files. Ensure all text is converted to outlines to avoid font issues."
+    },
+    {
+        q: "Do you offer design services?",
+        a: "Currently, we are a print-only service and do not offer design services. You must provide a print-ready file for your order."
+    },
+    {
+        q: "What is your return policy?",
+        a: "We do not accept returns on custom-printed items. However, if there is a manufacturing defect or your order is incorrect, please contact us within 24 hours of delivery with photographic evidence, and we will arrange for a reprint or refund."
+    }
+];
+
+function renderFaqPage() {
+    const container = document.getElementById('faq-container');
+    if (!container) return;
+
+    container.innerHTML = FAQS.map((faq, index) => `
+        <div class="faq-item" id="faq-${index}">
+            <div class="faq-question" onclick="toggleFaq(${index})">
+                <span>${faq.q}</span>
+                <i data-lucide="plus" class="icon"></i>
+            </div>
+            <div class="faq-answer">
+                <p>${faq.a}</p>
+            </div>
+        </div>
+    `).join('');
+    lucide.createIcons();
+}
+
+function toggleFaq(index) {
+    const item = document.getElementById(`faq-${index}`);
+    if (item) {
+        item.classList.toggle('active');
+    }
+}
+
+// --- Scroll to Top Logic ---
+function handleScroll() {
+    const btn = document.getElementById('scrollToTopBtn');
+    if (!btn) return;
+    if (window.scrollY > 300) {
+        btn.classList.remove('hidden');
+    } else {
+        btn.classList.add('hidden');
+    }
+}
+window.addEventListener('scroll', handleScroll);
+
 // --- Three.js Background ---
 function initThreeBackground() {
   const container = document.getElementById("canvas-container");
@@ -845,3 +917,61 @@ renderCategories();
 renderProducts();
 initThreeBackground();
 lucide.createIcons();
+
+// --- Policies Logic ---
+const POLICIES = {
+  terms: {
+    title: "Terms & Conditions",
+    content: `
+      <p class="text-muted">Last updated: October 2024</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">1. Introduction</h4>
+      <p>Welcome to PrintVaan. These Terms and Conditions govern your use of our website and services. By accessing or using our services, you agree to be bound by these terms.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">2. Dealer Accounts</h4>
+      <p>To access wholesale pricing, you must register as a dealer. You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">3. Orders & Payments</h4>
+      <p>All orders are subject to acceptance. Prices are subject to change without notice based on raw material costs. Payment must be completed via the available methods (Card, UPI, Net Banking) before production begins.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">4. Limitation of Liability</h4>
+      <p>PrintVaan shall not be liable for any indirect, incidental, or consequential damages arising from the use of our services or products.</p>
+    `,
+  },
+  privacy: {
+    title: "Privacy Policy",
+    content: `
+      <p class="text-muted">Last updated: October 2024</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">1. Information We Collect</h4>
+      <p>We collect information you provide directly to us, such as when you create an account, place an order, or contact support. This includes your name, company details, email, and phone number.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">2. How We Use Your Information</h4>
+      <p>We use your information to process orders, communicate with you regarding order status, and improve our services. We do not sell your personal data to third parties.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">3. Data Security</h4>
+      <p>We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.</p>
+    `,
+  },
+  refund: {
+    title: "Refund & Cancellation Policy",
+    content: `
+      <p class="text-muted">Last updated: October 2024</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">1. Order Cancellation</h4>
+      <p>Orders can only be cancelled within 1 hour of placement. Once production has started, orders cannot be cancelled due to the customized nature of the products.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">2. Returns & Refunds</h4>
+      <p>We do not accept returns for custom printed materials (Flex, Vinyl, etc.) as they are made to specific dimensions. However, if you receive a defective or incorrect item, please contact us within 24 hours of delivery with photographic evidence.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">3. Resolution</h4>
+      <p>If a defect is verified by our quality team, we will reprint the order at no additional cost or provide a refund to your original payment method within 5-7 business days.</p>
+    `,
+  },
+};
+
+function showPolicy(type) {
+  const policy = POLICIES[type];
+  if (!policy) return;
+
+  const container = document.getElementById("policy-content");
+  if (container) {
+    container.innerHTML = `
+      <h2 class="section-title">${policy.title}</h2>
+      <div class="policy-body" style="color: #475569;">
+        ${policy.content}
+      </div>
+    `;
+  }
+  navigateTo("policies");
+}
