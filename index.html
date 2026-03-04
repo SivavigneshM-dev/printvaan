@@ -210,29 +210,49 @@
                 <h1>PrintVaan</h1>
             </div>
 
-            <!-- Center Navigation -->
-            <nav class="nav-center">
+            <!-- Main Navigation -->
+            <nav class="nav-links" style="display: flex; align-items: center; gap: 1.5rem;">
                 <button class="nav-btn" onclick="navigateTo('home')">Home</button>
-                <button class="nav-btn" id="loginBtn" onclick="navigateTo('login')">Dealer Login</button>
+                
+                <!-- Orders Dropdown (Logged In Only) -->
+                <div class="dropdown hidden" id="navOrders">
+                    <button class="nav-btn" style="display:flex;align-items:center;">Orders <i data-lucide="chevron-down" class="icon-sm"></i></button>
+                    <div class="dropdown-content">
+                        <div class="dropdown-item" onclick="navigateTo('orders')">Order History & Invoices</div>
+                        <div class="dropdown-item text-danger" onclick="clearOrderHistory()">Clear History</div>
+                    </div>
+                </div>
+
+                <!-- Policies Dropdown -->
+                <div class="dropdown">
+                    <button class="nav-btn" style="display:flex;align-items:center;">Policies <i data-lucide="chevron-down" class="icon-sm"></i></button>
+                    <div class="dropdown-content">
+                        <div class="dropdown-item" onclick="showPolicy('terms')">Terms & Conditions</div>
+                        <div class="dropdown-item" onclick="showPolicy('privacy')">Privacy Policy</div>
+                        <div class="dropdown-item" onclick="showPolicy('refund')">Refund Policy</div>
+                    </div>
+                </div>
             </nav>
 
             <!-- Right Side Actions -->
             <div class="nav-right" style="display: flex; align-items: center; gap: 1rem;">
-                <div class="user-profile-container hidden" id="userProfile"
-                    style="display: flex; align-items: center; gap: 1rem;">
-                    <div class="user-info" style="text-align: right; margin-right: 0.5rem;">
-                        <span id="userName" class="user-name"></span>
-                        <span id="userCompany" class="user-company"></span>
-                    </div>
-                    <button class="btn-text" onclick="navigateTo('orders')">My Orders</button>
-                    <button class="btn-text" onclick="navigateTo('profile')">Settings</button>
-                    <button class="btn-text" onclick="logout()">Logout</button>
-                    <button class="btn-text hidden" id="adminBtn" onclick="navigateTo('admin')">Admin</button>
-                </div>
                 <button class="cart-btn" onclick="navigateTo('cart')">
                     <i data-lucide="shopping-cart"></i>
                     <span class="cart-badge hidden" id="cartBadge">0</span>
                 </button>
+
+                <!-- Login Button -->
+                <button class="nav-btn" id="loginBtn" onclick="navigateTo('login')">Login</button>
+
+                <!-- Profile Dropdown (Logged In Only) -->
+                <div class="dropdown hidden" id="userProfile">
+                    <div id="profileAvatar" class="profile-avatar" title="User Profile" style="cursor: pointer;"></div>
+                    <div class="dropdown-content right-aligned">
+                        <div class="dropdown-item" onclick="navigateTo('profile')">Profile Settings</div>
+                        <div class="dropdown-item hidden" id="adminLink" onclick="navigateTo('admin')">Admin Panel</div>
+                        <div class="dropdown-item" onclick="logout()">Logout</div>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
@@ -395,6 +415,21 @@
                 <h2 class="section-title">Order History</h2>
                 <div id="ordersList" class="orders-list">
                     <!-- Orders injected via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE: INVOICE PREVIEW -->
+        <section id="invoice-page" class="page-section hidden">
+            <div class="container py-8">
+                <button class="btn-text mb-4" onclick="navigateTo('orders')">
+                    <i data-lucide="arrow-left"></i> Back to Orders
+                </button>
+                <div id="invoice-content" class="card p-4">
+                    <!-- Invoice injected here -->
+                </div>
+                <div style="text-align:center; margin-top:1rem;">
+                     <button class="btn-primary" onclick="window.print()">Print Invoice</button>
                 </div>
             </div>
         </section>
@@ -640,7 +675,8 @@
 
     <!-- MODAL: LOGIN PROMPT -->
     <div id="login-prompt-modal" class="modal-overlay hidden">
-        <div class="card modal-content">
+        <div class="card modal-content" style="position: relative;">
+            <button class="modal-close" onclick="hideLoginPrompt()">&times;</button>
             <h3>Login to Continue</h3>
             <p>Please log in or create an account to view pricing and add products to your order.</p>
             <div class="modal-actions">

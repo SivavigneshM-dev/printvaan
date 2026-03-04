@@ -109,7 +109,7 @@ function navigateTo(pageId) {
     targetPage.classList.remove("hidden");
   } else {
     // If page doesn't exist, show 404 page
-    document.getElementById('not-found-page').classList.remove('hidden');
+    document.getElementById("not-found-page").classList.remove("hidden");
   }
 
   // Clear active product when leaving detail page
@@ -123,6 +123,7 @@ function navigateTo(pageId) {
   if (pageId === "profile") renderProfilePage();
   if (pageId === "orders") renderOrdersPage();
   if (pageId === "faq") renderFaqPage();
+  // Invoice page is handled by viewInvoice()
 
   // Scroll to top on every navigation
   window.scrollTo(0, 0);
@@ -147,11 +148,14 @@ function handleLogin(e) {
 
   document.getElementById("loginBtn").classList.add("hidden");
   document.getElementById("userProfile").classList.remove("hidden");
-  document.getElementById("userName").textContent = state.user.name;
-  document.getElementById("userCompany").textContent = state.user.company;
+  document.getElementById("navOrders").classList.remove("hidden");
+  
+  // Set Profile Avatar (First letter of company name)
+  const companyInitial = state.user.company ? state.user.company.charAt(0).toUpperCase() : "U";
+  document.getElementById("profileAvatar").textContent = companyInitial;
 
   if (state.user.role === "admin") {
-    document.getElementById("adminBtn").classList.remove("hidden");
+    document.getElementById("adminLink").classList.remove("hidden");
   }
 
   navigateTo("home");
@@ -255,7 +259,8 @@ function logout() {
   state.user = null;
   document.getElementById("loginBtn").classList.remove("hidden");
   document.getElementById("userProfile").classList.add("hidden");
-  document.getElementById("adminBtn").classList.add("hidden");
+  document.getElementById("navOrders").classList.add("hidden");
+  document.getElementById("adminLink").classList.add("hidden");
   navigateTo("home");
 }
 
@@ -441,12 +446,95 @@ function renderOrdersPage() {
                     <span style="font-weight:bold;color:var(--primary)">#${order.id}</span>
                     <div class="text-muted" style="font-size:0.8rem">${order.date}</div>
                 </div>
-                <div style="font-weight:bold;font-size:1.1rem">${order.total}</div>
+                <div style="text-align:right;">
+                    <div style="font-weight:bold;font-size:1.1rem;margin-bottom:0.25rem;">${order.total}</div>
+                    <button class="btn-text" style="font-size:0.85rem;color:var(--primary);" onclick="viewInvoice('${order.id}')">View Bill</button>
+                </div>
             </div>
             <div>${itemsHtml}</div>
         `;
     container.appendChild(orderCard);
   });
+}
+
+function clearOrderHistory() {
+    if (!state.user) return;
+    
+    if (confirm("Are you sure you want to clear your order history? This cannot be undone.")) {
+        const allOrders = JSON.parse(localStorage.getItem("pk_orders")) || [];
+        // Keep orders that do NOT belong to the current user
+        const remainingOrders = allOrders.filter(o => o.userEmail !== state.user.email);
+        
+        localStorage.setItem("pk_orders", JSON.stringify(remainingOrders));
+        alert("Order history cleared.");
+        renderOrdersPage();
+    }
+}
+
+function viewInvoice(orderId) {
+    const allOrders = JSON.parse(localStorage.getItem("pk_orders")) || [];
+    const order = allOrders.find(o => o.id === orderId);
+    
+    if (!order) return;
+
+    const container = document.getElementById('invoice-content');
+    
+    let itemsRows = order.items.map(item => `
+        <tr>
+            <td>
+                <strong>${item.product.name}</strong><br>
+                <small class="text-muted">${item.width} ${item.unit} x ${item.height} ${item.unit} (${item.sqft} sqft)</small>
+            </td>
+            <td>₹${item.rate}</td>
+            <td>₹${item.total}</td>
+        </tr>
+    `).join('');
+
+    container.innerHTML = `
+        <div class="invoice-header">
+            <div>
+                <h2 style="color:var(--primary);">PrintVaan</h2>
+                <p class="text-muted">Wholesale Printing Solutions</p>
+                <p style="font-size:0.9rem;">123 Printing Press Lane, Mumbai</p>
+            </div>
+            <div style="text-align:right;">
+                <h3>INVOICE</h3>
+                <p><strong>Order #:</strong> ${order.id}</p>
+                <p><strong>Date:</strong> ${order.date}</p>
+            </div>
+        </div>
+        
+        <div style="margin-bottom:1.5rem;">
+            <strong>Bill To:</strong><br>
+            ${state.user ? state.user.name : 'Guest'}<br>
+            ${state.user ? state.user.company : ''}<br>
+            ${state.user ? state.user.email : order.userEmail}
+        </div>
+
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th>Item Description</th>
+                    <th>Rate (sqft)</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${itemsRows}
+            </tbody>
+        </table>
+
+        <div class="invoice-total">
+            Total Amount: ${order.total}
+        </div>
+        
+        <div style="margin-top:2rem; font-size:0.8rem; color:var(--text-muted); text-align:center;">
+            <p>Thank you for your business!</p>
+            <p>This is a computer generated invoice.</p>
+        </div>
+    `;
+
+    navigateTo('invoice');
 }
 
 // --- Unit Conversion ---
@@ -800,33 +888,34 @@ function resetRates() {
 
 // --- FAQ Data & Logic ---
 const FAQS = [
-    {
-        q: "What is the turnaround time for orders?",
-        a: "Standard orders are typically processed and shipped within 2-3 business days. Bulk orders may require additional time. You will receive an email notification once your order is shipped."
-    },
-    {
-        q: "Can I cancel my order?",
-        a: "Orders can be cancelled within 1 hour of placement. Due to the custom nature of our products, we cannot cancel orders once they have entered the production phase. Please see our Cancellation Policy for more details."
-    },
-    {
-        q: "What file formats do you accept for designs?",
-        a: "We recommend high-resolution PDF, AI, or EPS files for the best quality. We also accept high-quality JPG and PNG files. Ensure all text is converted to outlines to avoid font issues."
-    },
-    {
-        q: "Do you offer design services?",
-        a: "Currently, we are a print-only service and do not offer design services. You must provide a print-ready file for your order."
-    },
-    {
-        q: "What is your return policy?",
-        a: "We do not accept returns on custom-printed items. However, if there is a manufacturing defect or your order is incorrect, please contact us within 24 hours of delivery with photographic evidence, and we will arrange for a reprint or refund."
-    }
+  {
+    q: "What is the turnaround time for orders?",
+    a: "Standard orders are typically processed and shipped within 2-3 business days. Bulk orders may require additional time. You will receive an email notification once your order is shipped.",
+  },
+  {
+    q: "Can I cancel my order?",
+    a: "Orders can be cancelled within 1 hour of placement. Due to the custom nature of our products, we cannot cancel orders once they have entered the production phase. Please see our Cancellation Policy for more details.",
+  },
+  {
+    q: "What file formats do you accept for designs?",
+    a: "We recommend high-resolution PDF, AI, or EPS files for the best quality. We also accept high-quality JPG and PNG files. Ensure all text is converted to outlines to avoid font issues.",
+  },
+  {
+    q: "Do you offer design services?",
+    a: "Currently, we are a print-only service and do not offer design services. You must provide a print-ready file for your order.",
+  },
+  {
+    q: "What is your return policy?",
+    a: "We do not accept returns on custom-printed items. However, if there is a manufacturing defect or your order is incorrect, please contact us within 24 hours of delivery with photographic evidence, and we will arrange for a reprint or refund.",
+  },
 ];
 
 function renderFaqPage() {
-    const container = document.getElementById('faq-container');
-    if (!container) return;
+  const container = document.getElementById("faq-container");
+  if (!container) return;
 
-    container.innerHTML = FAQS.map((faq, index) => `
+  container.innerHTML = FAQS.map(
+    (faq, index) => `
         <div class="faq-item" id="faq-${index}">
             <div class="faq-question" onclick="toggleFaq(${index})">
                 <span>${faq.q}</span>
@@ -836,28 +925,29 @@ function renderFaqPage() {
                 <p>${faq.a}</p>
             </div>
         </div>
-    `).join('');
-    lucide.createIcons();
+    `,
+  ).join("");
+  lucide.createIcons();
 }
 
 function toggleFaq(index) {
-    const item = document.getElementById(`faq-${index}`);
-    if (item) {
-        item.classList.toggle('active');
-    }
+  const item = document.getElementById(`faq-${index}`);
+  if (item) {
+    item.classList.toggle("active");
+  }
 }
 
 // --- Scroll to Top Logic ---
 function handleScroll() {
-    const btn = document.getElementById('scrollToTopBtn');
-    if (!btn) return;
-    if (window.scrollY > 300) {
-        btn.classList.remove('hidden');
-    } else {
-        btn.classList.add('hidden');
-    }
+  const btn = document.getElementById("scrollToTopBtn");
+  if (!btn) return;
+  if (window.scrollY > 300) {
+    btn.classList.remove("hidden");
+  } else {
+    btn.classList.add("hidden");
+  }
 }
-window.addEventListener('scroll', handleScroll);
+window.addEventListener("scroll", handleScroll);
 
 // --- Three.js Background ---
 function initThreeBackground() {
@@ -923,39 +1013,80 @@ const POLICIES = {
   terms: {
     title: "Terms & Conditions",
     content: `
-      <p class="text-muted">Last updated: October 2024</p>
-      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">1. Introduction</h4>
-      <p>Welcome to PrintVaan. These Terms and Conditions govern your use of our website and services. By accessing or using our services, you agree to be bound by these terms.</p>
-      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">2. Dealer Accounts</h4>
-      <p>To access wholesale pricing, you must register as a dealer. You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
-      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">3. Orders & Payments</h4>
-      <p>All orders are subject to acceptance. Prices are subject to change without notice based on raw material costs. Payment must be completed via the available methods (Card, UPI, Net Banking) before production begins.</p>
-      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">4. Limitation of Liability</h4>
-      <p>PrintVaan shall not be liable for any indirect, incidental, or consequential damages arising from the use of our services or products.</p>
+      <p class="text-muted">Welcome to PrintVaan. By accessing or using our website, you agree to comply with and be bound by the following Terms and Conditions. Please read them carefully before using our services.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">1. Use of Website</h4>
+      <p>By using this website, you confirm that you are at least 18 years old or accessing the website under the supervision of a parent or legal guardian.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">2. Products & Services</h4>
+      <p>PrintVaan provides custom printing services and related products. All product descriptions, images, and prices are subject to change without prior notice.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">3. Order Acceptance</h4>
+      <p>Once an order is placed, you will receive an order confirmation. PrintVaan reserves the right to cancel or refuse any order due to pricing errors, product availability, or suspected fraudulent activity.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">4. Pricing & Payments</h4>
+      <p>All prices listed on the website are in INR and inclusive/exclusive of applicable taxes as stated. Payments must be completed through the available payment methods provided on the website.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">5. Intellectual Property</h4>
+      <p>All website content including logos, designs, images, and text are the property of PrintVaan and may not be copied, reproduced, or distributed without written permission.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">6. Limitation of Liability</h4>
+      <p>PrintVaan shall not be held liable for any indirect, incidental, or consequential damages arising from the use of our website or products.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">7. Changes to Terms</h4>
+      <p>We reserve the right to update or modify these Terms & Conditions at any time without prior notice.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">8. Contact Information</h4>
+      <p>For any queries regarding these Terms, please contact us through our website support page.</p>
     `,
   },
   privacy: {
     title: "Privacy Policy",
     content: `
-      <p class="text-muted">Last updated: October 2024</p>
+      <p class="text-muted">At PrintVaan, we respect your privacy and are committed to protecting your personal information.</p>
       <h4 style="margin-top:1rem;margin-bottom:0.5rem;">1. Information We Collect</h4>
-      <p>We collect information you provide directly to us, such as when you create an account, place an order, or contact support. This includes your name, company details, email, and phone number.</p>
-      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">2. How We Use Your Information</h4>
-      <p>We use your information to process orders, communicate with you regarding order status, and improve our services. We do not sell your personal data to third parties.</p>
-      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">3. Data Security</h4>
-      <p>We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.</p>
+      <p>We may collect personal information such as your name, email address, phone number, shipping address, and payment details when you place an order or register on our website.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">2. Use of Information</h4>
+      <p>The information collected is used to:</p>
+      <ul style="list-style-type: disc; margin-left: 1.5rem;">
+        <li>Process orders and payments</li>
+        <li>Deliver products and services</li>
+        <li>Improve customer experience</li>
+        <li>Send order updates and important notifications</li>
+      </ul>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">3. Data Protection</h4>
+      <p>We implement appropriate security measures to protect your personal data against unauthorized access, misuse, or disclosure.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">4. Sharing of Information</h4>
+      <p>We do not sell, trade, or rent personal information to third parties. Information may only be shared with trusted service providers such as payment gateways, shipping partners, and technical service providers for order fulfillment.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">5. Cookies</h4>
+      <p>Our website may use cookies to enhance browsing experience and analyze website traffic.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">6. Third-Party Services</h4>
+      <p>Payment processing and logistics may be handled by third-party providers who follow their own privacy policies.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">7. Policy Updates</h4>
+      <p>PrintVaan reserves the right to update this Privacy Policy at any time. Updated versions will be posted on this page.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">8. Contact Us</h4>
+      <p>If you have questions regarding this policy, please contact us through our official website.</p>
     `,
   },
   refund: {
-    title: "Refund & Cancellation Policy",
+    title: "Refund & Replacement Policy",
     content: `
-      <p class="text-muted">Last updated: October 2024</p>
-      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">1. Order Cancellation</h4>
-      <p>Orders can only be cancelled within 1 hour of placement. Once production has started, orders cannot be cancelled due to the customized nature of the products.</p>
-      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">2. Returns & Refunds</h4>
-      <p>We do not accept returns for custom printed materials (Flex, Vinyl, etc.) as they are made to specific dimensions. However, if you receive a defective or incorrect item, please contact us within 24 hours of delivery with photographic evidence.</p>
-      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">3. Resolution</h4>
-      <p>If a defect is verified by our quality team, we will reprint the order at no additional cost or provide a refund to your original payment method within 5-7 business days.</p>
+      <p class="text-muted">At PrintVaan, we strive to deliver high-quality products and customer satisfaction.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">1. Refund Eligibility</h4>
+      <p>Refunds are only applicable if the product received is:</p>
+      <ul style="list-style-type: disc; margin-left: 1.5rem;">
+        <li>Damaged during delivery</li>
+        <li>Incorrect product delivered</li>
+        <li>Manufacturing defect</li>
+      </ul>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">2. Replacement Requests</h4>
+      <p>Customers must raise a replacement request within <strong>48 hours of delivery</strong> by providing order details and clear images of the product.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">3. Non-Refundable Situations</h4>
+      <p>Refunds or replacements will not be provided for:</p>
+      <ul style="list-style-type: disc; margin-left: 1.5rem;">
+        <li>Customer design errors</li>
+        <li>Incorrect information provided during order placement</li>
+        <li>Minor color variations due to screen differences</li>
+        <li>Custom printed products that match the approved design</li>
+      </ul>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">4. Processing Time</h4>
+      <p>Approved refunds will be processed within <strong>5–7 business days</strong> through the original payment method.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">5. Replacement Delivery</h4>
+      <p>If a replacement is approved, a new product will be printed and shipped without additional cost.</p>
+      <h4 style="margin-top:1rem;margin-bottom:0.5rem;">6. Contact for Support</h4>
+      <p>For refund or replacement requests, please contact our support team with your order number and product images.</p>
     `,
   },
 };
