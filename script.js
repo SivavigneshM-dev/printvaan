@@ -9,26 +9,30 @@ const DEFAULT_RATES = {
   clearGlossy: 30,
 };
 
-let RATES = JSON.parse(localStorage.getItem('pk_rates')) || DEFAULT_RATES;
+let RATES = JSON.parse(localStorage.getItem("pk_rates")) || DEFAULT_RATES;
 
 // --- User Database Simulation ---
 function getUsers() {
-  return JSON.parse(localStorage.getItem('pk_users')) || [];
+  return JSON.parse(localStorage.getItem("pk_users")) || [];
 }
 
 function saveUsers(users) {
-  localStorage.setItem('pk_users', JSON.stringify(users));
+  localStorage.setItem("pk_users", JSON.stringify(users));
 }
 
 function generateId(length = 6) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    return Array.from({ length }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  return Array.from({ length }, () =>
+    chars.charAt(Math.floor(Math.random() * chars.length)),
+  ).join("");
 }
 
 const PRODUCTS = [
   {
     id: "flexNormal",
     name: "Flex Normal",
+    category: "Flex",
     type: "tiered",
     desc: "Standard banner material",
     img: "https://cdn.dotpe.in/longtail/store-items/5486466/9ETy9xoa.jpeg",
@@ -36,6 +40,7 @@ const PRODUCTS = [
   {
     id: "starFlex",
     name: "Star Flex",
+    category: "Flex",
     type: "tiered",
     desc: "Premium heavy duty",
     img: "https://cpimg.tistatic.com/7550376/b/4/star-flex-media.jpg",
@@ -43,6 +48,7 @@ const PRODUCTS = [
   {
     id: "vinylNormal",
     name: "Vinyl Normal",
+    category: "Vinyl",
     type: "tiered",
     desc: "Standard adhesive vinyl",
     img: "https://octangle.co.za/wp-content/uploads/2025/05/Custom-Vinyl-Sticker-Printing.webp",
@@ -50,6 +56,7 @@ const PRODUCTS = [
   {
     id: "vinylOneWay",
     name: "Vinyl OneWay",
+    category: "Vinyl",
     type: "fixed",
     desc: "Perforated window film",
     img: "https://image.made-in-china.com/202f0j00kIWcCJdsPHbj/Affordable-Window-Film-One-Way-Vision-Vinyl-with-Special-Material-Made-Surface.webp",
@@ -57,6 +64,7 @@ const PRODUCTS = [
   {
     id: "vinylReflective",
     name: "Vinyl Reflective",
+    category: "Vinyl",
     type: "fixed",
     desc: "High visibility reflective",
     img: "https://weallight.com/wp-content/uploads/2018/11/Reflective-Outdoor-Vinyl.jpg",
@@ -64,6 +72,7 @@ const PRODUCTS = [
   {
     id: "clearMatte",
     name: "Clear Matte",
+    category: "Clear Sheet",
     type: "fixed",
     desc: "Non-glare lamination",
     img: "https://www.maizey.co.za/wp-content/uploads/2023/04/self-adhesive-vinyl-avery-frosted-glass.jpg",
@@ -71,6 +80,7 @@ const PRODUCTS = [
   {
     id: "clearGlossy",
     name: "Clear Glossy",
+    category: "Clear Sheet",
     type: "fixed",
     desc: "High shine lamination",
     img: "https://www.greatk2.com/uploads/202025332/optically-clear-printable-vinyl18250826580.jpg",
@@ -80,7 +90,10 @@ const PRODUCTS = [
 // --- State ---
 let state = {
   cart: [],
+  activeCategory: "All",
+  searchQuery: "",
   user: null,
+  activeProduct: null,
 };
 
 // --- Navigation ---
@@ -93,11 +106,15 @@ function navigateTo(pageId) {
   // Show target page
   document.getElementById(`${pageId}-page`).classList.remove("hidden");
 
+  // Clear active product when leaving detail page
+  if (state.activeProduct && pageId !== "product-detail") {
+    state.activeProduct = null;
+  }
+
   if (pageId === "cart") renderCart();
   if (pageId === "admin") renderAdminPanel();
   if (pageId === "profile") renderProfilePage();
   if (pageId === "orders") renderOrdersPage();
-
 }
 
 // --- Auth Logic ---
@@ -108,7 +125,7 @@ function handleLogin(e) {
   const password = document.getElementById("loginPassword").value;
 
   const users = getUsers();
-  const user = users.find(u => u.email === email && u.password === password);
+  const user = users.find((u) => u.email === email && u.password === password);
 
   if (!user) {
     alert("Invalid email or password.");
@@ -121,106 +138,106 @@ function handleLogin(e) {
   document.getElementById("userProfile").classList.remove("hidden");
   document.getElementById("userName").textContent = state.user.name;
   document.getElementById("userCompany").textContent = state.user.company;
-  
-  if(state.user.role === 'admin') {
-      document.getElementById("adminBtn").classList.remove("hidden");
+
+  if (state.user.role === "admin") {
+    document.getElementById("adminBtn").classList.remove("hidden");
   }
 
   navigateTo("home");
 }
 
 function handleRegister(e) {
-    e.preventDefault();
-    const users = getUsers();
-    const newUser = {
-        id: generateId(),
-        name: document.getElementById('regName').value,
-        company: document.getElementById('regCompany').value,
-        email: document.getElementById('regEmail').value,
-        phone: document.getElementById('regPhone').value,
-        password: document.getElementById('regPassword').value,
-        role: 'dealer'
-    };
+  e.preventDefault();
+  const users = getUsers();
+  const newUser = {
+    id: generateId(),
+    name: document.getElementById("regName").value,
+    company: document.getElementById("regCompany").value,
+    email: document.getElementById("regEmail").value,
+    phone: document.getElementById("regPhone").value,
+    password: document.getElementById("regPassword").value,
+    role: "dealer",
+  };
 
-    if (users.some(u => u.email === newUser.email)) {
-        alert('An account with this email already exists.');
-        return;
-    }
+  if (users.some((u) => u.email === newUser.email)) {
+    alert("An account with this email already exists.");
+    return;
+  }
 
-    users.push(newUser);
-    saveUsers(users);
-    alert('Registration successful! Please login.');
-    navigateTo('login');
+  users.push(newUser);
+  saveUsers(users);
+  alert("Registration successful! Please login.");
+  navigateTo("login");
 }
 
 let otpSession = {}; // Temporary store for OTP flow
 
 function handleForgotPassword(e) {
-    e.preventDefault();
-    const phone = document.getElementById('forgotPhone').value;
-    const users = getUsers();
-    const user = users.find(u => u.phone === phone);
+  e.preventDefault();
+  const phone = document.getElementById("forgotPhone").value;
+  const users = getUsers();
+  const user = users.find((u) => u.phone === phone);
 
-    if (!user) {
-        alert('No account found with this mobile number.');
-        return;
-    }
+  if (!user) {
+    alert("No account found with this mobile number.");
+    return;
+  }
 
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
-    otpSession = { email: user.email, otp: otp };
+  const otp = Math.floor(1000 + Math.random() * 9000).toString();
+  otpSession = { email: user.email, otp: otp };
 
-    // Simulate sending OTP
-    alert(`Your OTP is: ${otp}`);
-    navigateTo('verify-otp');
+  // Simulate sending OTP
+  alert(`Your OTP is: ${otp}`);
+  navigateTo("verify-otp");
 }
 
 function handleVerifyOtp(e) {
-    e.preventDefault();
-    const enteredOtp = document.getElementById('otpInput').value;
-    if (enteredOtp === otpSession.otp) {
-        navigateTo('reset-password');
-    } else {
-        alert('Invalid OTP. Please try again.');
-    }
+  e.preventDefault();
+  const enteredOtp = document.getElementById("otpInput").value;
+  if (enteredOtp === otpSession.otp) {
+    navigateTo("reset-password");
+  } else {
+    alert("Invalid OTP. Please try again.");
+  }
 }
 
 function handleResetPassword(e) {
-    e.preventDefault();
-    const newPassword = document.getElementById('resetPassword').value;
-    let users = getUsers();
-    const userIndex = users.findIndex(u => u.email === otpSession.email);
+  e.preventDefault();
+  const newPassword = document.getElementById("resetPassword").value;
+  let users = getUsers();
+  const userIndex = users.findIndex((u) => u.email === otpSession.email);
 
-    if (userIndex !== -1) {
-        users[userIndex].password = newPassword;
-        saveUsers(users);
-        alert('Password has been reset successfully. Please login.');
-        otpSession = {}; // Clear session
-        navigateTo('login');
-    } else {
-        alert('An error occurred. Please try again.');
-    }
+  if (userIndex !== -1) {
+    users[userIndex].password = newPassword;
+    saveUsers(users);
+    alert("Password has been reset successfully. Please login.");
+    otpSession = {}; // Clear session
+    navigateTo("login");
+  } else {
+    alert("An error occurred. Please try again.");
+  }
 }
 
 function renderProfilePage() {
-    if (!state.user) return;
-    document.getElementById('profileId').value = state.user.id;
-    document.getElementById('profileName').value = state.user.name;
-    document.getElementById('profileCompany').value = state.user.company;
-    document.getElementById('profileEmail').value = state.user.email;
+  if (!state.user) return;
+  document.getElementById("profileId").value = state.user.id;
+  document.getElementById("profileName").value = state.user.name;
+  document.getElementById("profileCompany").value = state.user.company;
+  document.getElementById("profileEmail").value = state.user.email;
 }
 
 function handleUpdateProfile(e) {
-    e.preventDefault();
-    let users = getUsers();
-    const userIndex = users.findIndex(u => u.id === state.user.id);
-    
-    users[userIndex].name = document.getElementById('profileName').value;
-    users[userIndex].company = document.getElementById('profileCompany').value;
-    
-    saveUsers(users);
-    state.user = users[userIndex]; // Update state
-    alert('Profile updated successfully!');
-    logout(); // Force re-login to see changes in header
+  e.preventDefault();
+  let users = getUsers();
+  const userIndex = users.findIndex((u) => u.id === state.user.id);
+
+  users[userIndex].name = document.getElementById("profileName").value;
+  users[userIndex].company = document.getElementById("profileCompany").value;
+
+  saveUsers(users);
+  state.user = users[userIndex]; // Update state
+  alert("Profile updated successfully!");
+  logout(); // Force re-login to see changes in header
 }
 
 function logout() {
@@ -232,13 +249,26 @@ function logout() {
 }
 
 function handleDeleteAccount() {
-    if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-        let users = getUsers();
-        const updatedUsers = users.filter(u => u.id !== state.user.id);
-        saveUsers(updatedUsers);
-        alert('Account deleted successfully.');
-        logout();
-    }
+  if (
+    confirm(
+      "Are you sure you want to delete your account? This action cannot be undone.",
+    )
+  ) {
+    let users = getUsers();
+    const updatedUsers = users.filter((u) => u.id !== state.user.id);
+    saveUsers(updatedUsers);
+    alert("Account deleted successfully.");
+    logout();
+  }
+}
+
+// --- Login Prompt Modal ---
+function showLoginPrompt() {
+  document.getElementById("login-prompt-modal").classList.remove("hidden");
+}
+
+function hideLoginPrompt() {
+  document.getElementById("login-prompt-modal").classList.add("hidden");
 }
 
 // --- Cart Logic ---
@@ -300,49 +330,59 @@ function removeFromCart(index) {
 
 function switchPaymentMethod(method, element) {
   // Update tabs
-  document.querySelectorAll('.method').forEach(el => el.classList.remove('active'));
-  element.classList.add('active');
+  document
+    .querySelectorAll(".method")
+    .forEach((el) => el.classList.remove("active"));
+  element.classList.add("active");
 
   // Hide all fields
-  document.getElementById('card-fields').classList.add('hidden');
-  document.getElementById('upi-fields').classList.add('hidden');
-  document.getElementById('netbanking-fields').classList.add('hidden');
+  document.getElementById("card-fields").classList.add("hidden");
+  document.getElementById("upi-fields").classList.add("hidden");
+  document.getElementById("netbanking-fields").classList.add("hidden");
 
   // Reset required attributes
-  document.querySelectorAll('#card-fields input').forEach(i => i.required = false);
-  document.querySelectorAll('#upi-fields input').forEach(i => i.required = false);
+  document
+    .querySelectorAll("#card-fields input")
+    .forEach((i) => (i.required = false));
+  document
+    .querySelectorAll("#upi-fields input")
+    .forEach((i) => (i.required = false));
 
   // Show selected and set required
-  if (method === 'card') {
-    document.getElementById('card-fields').classList.remove('hidden');
-    document.querySelectorAll('#card-fields input').forEach(i => i.required = true);
-  } else if (method === 'upi') {
-    document.getElementById('upi-fields').classList.remove('hidden');
-    document.querySelectorAll('#upi-fields input').forEach(i => i.required = true);
-  } else if (method === 'netbanking') {
-    document.getElementById('netbanking-fields').classList.remove('hidden');
+  if (method === "card") {
+    document.getElementById("card-fields").classList.remove("hidden");
+    document
+      .querySelectorAll("#card-fields input")
+      .forEach((i) => (i.required = true));
+  } else if (method === "upi") {
+    document.getElementById("upi-fields").classList.remove("hidden");
+    document
+      .querySelectorAll("#upi-fields input")
+      .forEach((i) => (i.required = true));
+  } else if (method === "netbanking") {
+    document.getElementById("netbanking-fields").classList.remove("hidden");
   }
 }
 
 function handlePayment(e) {
   e.preventDefault();
-  
+
   const btn = e.target.querySelector('button[type="submit"]');
   const originalText = btn.textContent;
   btn.textContent = "Processing Order...";
   btn.disabled = true;
 
   // Save Order
-  const orders = JSON.parse(localStorage.getItem('pk_orders')) || [];
+  const orders = JSON.parse(localStorage.getItem("pk_orders")) || [];
   const newOrder = {
-      id: generateId(8),
-      date: new Date().toLocaleString(),
-      items: state.cart,
-      total: document.getElementById('cartTotal').textContent,
-      userEmail: state.user ? state.user.email : 'guest'
+    id: generateId(8),
+    date: new Date().toLocaleString(),
+    items: state.cart,
+    total: document.getElementById("cartTotal").textContent,
+    userEmail: state.user ? state.user.email : "guest",
   };
   orders.push(newOrder);
-  localStorage.setItem('pk_orders', JSON.stringify(orders));
+  localStorage.setItem("pk_orders", JSON.stringify(orders));
 
   setTimeout(() => {
     alert("Payment Successful! Order Placed.");
@@ -355,30 +395,36 @@ function handlePayment(e) {
 }
 
 function renderOrdersPage() {
-    const container = document.getElementById('ordersList');
-    container.innerHTML = '';
-    
-    const allOrders = JSON.parse(localStorage.getItem('pk_orders')) || [];
-    // Filter orders for current user
-    const userOrders = state.user ? allOrders.filter(o => o.userEmail === state.user.email) : [];
+  const container = document.getElementById("ordersList");
+  container.innerHTML = "";
 
-    if (userOrders.length === 0) {
-        container.innerHTML = '<div class="text-muted">No past orders found.</div>';
-        return;
-    }
+  const allOrders = JSON.parse(localStorage.getItem("pk_orders")) || [];
+  // Filter orders for current user
+  const userOrders = state.user
+    ? allOrders.filter((o) => o.userEmail === state.user.email)
+    : [];
 
-    userOrders.reverse().forEach(order => {
-        const orderCard = document.createElement('div');
-        orderCard.className = 'card p-4 mb-4';
-        
-        let itemsHtml = order.items.map(item => `
+  if (userOrders.length === 0) {
+    container.innerHTML = '<div class="text-muted">No past orders found.</div>';
+    return;
+  }
+
+  userOrders.reverse().forEach((order) => {
+    const orderCard = document.createElement("div");
+    orderCard.className = "card p-4 mb-4";
+
+    let itemsHtml = order.items
+      .map(
+        (item) => `
             <div style="display:flex;justify-content:space-between;font-size:0.9rem;margin-bottom:0.5rem;border-bottom:1px solid #eee;padding-bottom:0.5rem;">
                 <span>${item.product.name} <span class="text-muted">(${item.width}x${item.height} ${item.unit})</span></span>
                 <span>₹${item.total}</span>
             </div>
-        `).join('');
+        `,
+      )
+      .join("");
 
-        orderCard.innerHTML = `
+    orderCard.innerHTML = `
             <div style="display:flex;justify-content:space-between;margin-bottom:1rem;border-bottom:1px solid #e2e8f0;padding-bottom:0.5rem;">
                 <div>
                     <span style="font-weight:bold;color:var(--primary)">#${order.id}</span>
@@ -388,8 +434,8 @@ function renderOrdersPage() {
             </div>
             <div>${itemsHtml}</div>
         `;
-        container.appendChild(orderCard);
-    });
+    container.appendChild(orderCard);
+  });
 }
 
 // --- Unit Conversion ---
@@ -467,15 +513,47 @@ function calculatePrice(productId, widthFeet, heightFeet) {
 }
 
 // --- Render Functions ---
+function renderCategories() {
+  const container = document.getElementById("categoryFilters");
+  if (!container) return;
+
+  const categories = ["All", ...new Set(PRODUCTS.map((p) => p.category))];
+
+  container.innerHTML = categories
+    .map(
+      (cat) => `
+        <button class="cat-btn ${state.activeCategory === cat ? "active" : ""}" 
+                onclick="setCategory('${cat}')">
+            ${cat}
+        </button>
+    `,
+    )
+    .join("");
+}
+
 function renderProducts() {
   const productGrid = document.getElementById("productGrid");
   productGrid.innerHTML = "";
 
-  PRODUCTS.forEach((product) => {
+  // Filter Logic
+  const filtered = PRODUCTS.filter((p) => {
+    const matchesCat =
+      state.activeCategory === "All" || p.category === state.activeCategory;
+    const matchesSearch =
+      p.name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+      p.desc.toLowerCase().includes(state.searchQuery.toLowerCase());
+    return matchesCat && matchesSearch;
+  });
+
+  if (filtered.length === 0)
+    productGrid.innerHTML =
+      '<div style="grid-column:1/-1;text-align:center;padding:2rem;color:#64748b">No products found matching your criteria.</div>';
+
+  filtered.forEach((product) => {
     const card = document.createElement("div");
     card.className = "card";
 
-    // HTML Template for Card
+    // Simplified HTML for product card on homepage
     card.innerHTML = `
             <div class="product-image">
                 <img src="${product.img}" alt="${product.name}">
@@ -485,86 +563,118 @@ function renderProducts() {
                     <h3>${product.name}</h3>
                     <div class="product-desc">${product.desc}</div>
                 </div>
-                
-                <!-- Individual Calculator -->
-                <div class="product-inputs">
-                    <div class="input-group">
-                        <label>Width</label>
-                        <input type="number" id="w-${product.id}" placeholder="0">
-                    </div>
-                    <div class="input-group">
-                        <label>Height</label>
-                        <input type="number" id="h-${product.id}" placeholder="0">
-                    </div>
-                    <div class="input-group">
-                        <label>Unit</label>
-                        <select id="u-${product.id}">
-                            <option value="ft" selected>ft</option>
-                            <option value="m">m</option>
-                            <option value="in">in</option>
-                            <option value="cm">cm</option>
-                            <option value="mm">mm</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="sqft-view">
-                    <span>Calculated Area:</span>
-                    <span id="view-sqft-${product.id}" class="sqft-value">0.00 sqft</span>
-                </div>
-
-                <div class="rate-display">
-                    <span>Rate:</span>
-                    <span id="rate-${product.id}" class="rate-value">
-                        ₹0/sqft
-                    </span>
-                </div>
-                
-                <div id="badge-${product.id}" class="bulk-badge invisible">
-                    <i data-lucide="trending-down"></i> Bulk Price Applied
-                </div>
             </div>
-
             <div class="product-footer">
-                <div class="price-row">
-                    <span id="sqft-${product.id}" class="product-desc">0 sqft</span>
-                    <span id="total-${product.id}" class="total-price">₹0.00</span>
-                </div>
-                <button class="btn-add" id="btn-${product.id}" disabled>
-                    <i data-lucide="shopping-cart"></i> Add to Order
+                <button class="btn-primary full-width" onclick="handleProductClick('${product.id}')">
+                    View Details & Pricing
                 </button>
             </div>
         `;
 
     productGrid.appendChild(card);
-
-    // Listeners for Inputs
-    const inputs = [
-      document.getElementById(`w-${product.id}`),
-      document.getElementById(`h-${product.id}`),
-      document.getElementById(`u-${product.id}`),
-    ];
-
-    inputs.forEach((input) => {
-      input.addEventListener("input", () => updateCard(product.id));
-    });
-
-    // Listener for Add Button
-    document
-      .getElementById(`btn-${product.id}`)
-      .addEventListener("click", () => {
-        addToCartFromCard(product.id);
-      });
   });
 
   // Re-initialize icons for new elements
+  if (window.lucide) lucide.createIcons();
+}
+
+function setCategory(cat) {
+  state.activeCategory = cat;
+  renderCategories();
+  renderProducts();
+}
+
+function handleSearch(e) {
+  state.searchQuery = e.target.value;
+  renderProducts();
   lucide.createIcons();
 }
 
-function updateCard(id) {
-  const wVal = document.getElementById(`w-${id}`).value;
-  const hVal = document.getElementById(`h-${id}`).value;
-  const unit = document.getElementById(`u-${id}`).value;
+function handleProductClick(productId) {
+  if (state.user) {
+    renderProductDetailPage(productId);
+    navigateTo("product-detail");
+  } else {
+    showLoginPrompt();
+  }
+}
+
+function renderProductDetailPage(productId) {
+  state.activeProduct = PRODUCTS.find((p) => p.id === productId);
+  if (!state.activeProduct) return;
+
+  const product = state.activeProduct;
+  const container = document.getElementById("productDetailContent");
+
+  container.innerHTML = `
+        <div class="product-detail-layout">
+            <div class="product-detail-image">
+                <img src="${product.img}" alt="${product.name}">
+            </div>
+            <div class="card">
+                <div class="product-content">
+                    <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">${product.name}</h2>
+                    <p class="text-muted" style="margin-bottom: 2rem;">${product.desc}</p>
+                    
+                    <div class="product-inputs">
+                        <div class="input-group">
+                            <label>Width</label>
+                            <input type="number" id="detail-w" placeholder="0" oninput="updateDetailPage()">
+                        </div>
+                        <div class="input-group">
+                            <label>Height</label>
+                            <input type="number" id="detail-h" placeholder="0" oninput="updateDetailPage()">
+                        </div>
+                        <div class="input-group">
+                            <label>Unit</label>
+                            <select id="detail-u" onchange="updateDetailPage()">
+                                <option value="ft" selected>ft</option>
+                                <option value="m">m</option>
+                                <option value="in">in</option>
+                                <option value="cm">cm</option>
+                                <option value="mm">mm</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="sqft-view">
+                        <span>Calculated Area:</span>
+                        <span id="detail-view-sqft" class="sqft-value">0.00 sqft</span>
+                    </div>
+
+                    <div class="rate-display">
+                        <span>Rate:</span>
+                        <span id="detail-rate" class="rate-value">₹0/sqft</span>
+                    </div>
+                    
+                    <div id="detail-badge" class="bulk-badge invisible">
+                        <i data-lucide="trending-down"></i> Bulk Price Applied
+                    </div>
+                </div>
+
+                <div class="product-footer">
+                    <div class="price-row">
+                        <span id="detail-sqft" class="product-desc">0 sqft</span>
+                        <span id="detail-total" class="total-price">₹0.00</span>
+                    </div>
+                    <button class="btn-add" id="detail-btn-add" disabled onclick="addToCartFromDetailPage()">
+                        <i data-lucide="shopping-cart"></i> Add to Order
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+  lucide.createIcons();
+  updateDetailPage(); // Initial calculation/state update
+}
+
+function updateDetailPage() {
+  if (!state.activeProduct) return;
+  const id = state.activeProduct.id;
+
+  const wVal = document.getElementById(`detail-w`).value;
+  const hVal = document.getElementById(`detail-h`).value;
+  const unit = document.getElementById(`detail-u`).value;
 
   const wFt = convertToFeet(wVal, unit);
   const hFt = convertToFeet(hVal, unit);
@@ -572,28 +682,31 @@ function updateCard(id) {
   const calc = calculatePrice(id, wFt, hFt);
 
   // Update UI Elements
-  document.getElementById(`rate-${id}`).textContent = `₹${calc.rate}/sqft`;
-  document.getElementById(`sqft-${id}`).textContent = `${calc.sqft} sqft`;
-  document.getElementById(`view-sqft-${id}`).textContent = `${calc.sqft} sqft`;
-  document.getElementById(`total-${id}`).textContent = `₹${calc.total}`;
+  document.getElementById(`detail-rate`).textContent = `₹${calc.rate}/sqft`;
+  document.getElementById(`detail-sqft`).textContent = `${calc.sqft} sqft`;
+  document.getElementById(`detail-view-sqft`).textContent = `${calc.sqft} sqft`;
+  document.getElementById(`detail-total`).textContent = `₹${calc.total}`;
 
-  const badge = document.getElementById(`badge-${id}`);
+  const badge = document.getElementById(`detail-badge`);
   if (calc.isDiscounted) badge.classList.remove("invisible");
   else badge.classList.add("invisible");
 
-  const btn = document.getElementById(`btn-${id}`);
+  const btn = document.getElementById(`detail-btn-add`);
   btn.disabled = calc.sqft <= 0;
 
-  const rateSpan = document.getElementById(`rate-${id}`);
+  const rateSpan = document.getElementById(`detail-rate`);
   if (calc.isDiscounted) rateSpan.classList.add("discounted");
   else rateSpan.classList.remove("discounted");
 }
 
-function addToCartFromCard(id) {
-  const product = PRODUCTS.find((p) => p.id === id);
-  const wVal = document.getElementById(`w-${id}`).value;
-  const hVal = document.getElementById(`h-${id}`).value;
-  const unit = document.getElementById(`u-${id}`).value;
+function addToCartFromDetailPage() {
+  if (!state.activeProduct) return;
+  const product = state.activeProduct;
+  const id = product.id;
+
+  const wVal = document.getElementById(`detail-w`).value;
+  const hVal = document.getElementById(`detail-h`).value;
+  const unit = document.getElementById(`detail-u`).value;
 
   const wFt = convertToFeet(wVal, unit);
   const hFt = convertToFeet(hVal, unit);
@@ -611,68 +724,124 @@ function addToCartFromCard(id) {
   };
 
   addToCart(item);
+  navigateTo("home"); // Go back to products after adding to cart
 }
 
 // --- Admin Logic ---
 function renderAdminPanel() {
-    const container = document.getElementById('adminRatesContainer');
-    container.innerHTML = '';
+  const container = document.getElementById("adminRatesContainer");
+  container.innerHTML = "";
 
-    // Helper to create input
-    const createInput = (key, val, parentKey = null) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'form-group';
-        const label = parentKey ? `${parentKey} - ${key}` : key;
-        const id = parentKey ? `admin-${parentKey}-${key}` : `admin-${key}`;
-        
-        wrapper.innerHTML = `
-            <label style="text-transform:capitalize">${label.replace(/([A-Z])/g, ' $1')}</label>
+  // Helper to create input
+  const createInput = (key, val, parentKey = null) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "form-group";
+    const label = parentKey ? `${parentKey} - ${key}` : key;
+    const id = parentKey ? `admin-${parentKey}-${key}` : `admin-${key}`;
+
+    wrapper.innerHTML = `
+            <label style="text-transform:capitalize">${label.replace(/([A-Z])/g, " $1")}</label>
             <input type="number" id="${id}" value="${val}" step="0.1">
         `;
-        return wrapper;
-    };
+    return wrapper;
+  };
 
-    for (const [key, value] of Object.entries(RATES)) {
-        if (typeof value === 'object') {
-            for (const [subKey, subValue] of Object.entries(value)) {
-                container.appendChild(createInput(subKey, subValue, key));
-            }
-        } else {
-            container.appendChild(createInput(key, value));
-        }
+  for (const [key, value] of Object.entries(RATES)) {
+    if (typeof value === "object") {
+      for (const [subKey, subValue] of Object.entries(value)) {
+        container.appendChild(createInput(subKey, subValue, key));
+      }
+    } else {
+      container.appendChild(createInput(key, value));
     }
+  }
 }
 
 function saveAdminRates() {
-    const newRates = JSON.parse(JSON.stringify(RATES)); // Deep copy
-    
-    for (const [key, value] of Object.entries(newRates)) {
-        if (typeof value === 'object') {
-            for (const subKey of Object.keys(value)) {
-                const input = document.getElementById(`admin-${key}-${subKey}`);
-                if(input) newRates[key][subKey] = parseFloat(input.value);
-            }
-        } else {
-            const input = document.getElementById(`admin-${key}`);
-            if(input) newRates[key] = parseFloat(input.value);
-        }
+  const newRates = JSON.parse(JSON.stringify(RATES)); // Deep copy
+
+  for (const [key, value] of Object.entries(newRates)) {
+    if (typeof value === "object") {
+      for (const subKey of Object.keys(value)) {
+        const input = document.getElementById(`admin-${key}-${subKey}`);
+        if (input) newRates[key][subKey] = parseFloat(input.value);
+      }
+    } else {
+      const input = document.getElementById(`admin-${key}`);
+      if (input) newRates[key] = parseFloat(input.value);
     }
-    
-    RATES = newRates;
-    localStorage.setItem('pk_rates', JSON.stringify(RATES));
-    alert('Rates updated successfully!');
-    renderProducts(); // Refresh UI with new rates
+  }
+
+  RATES = newRates;
+  localStorage.setItem("pk_rates", JSON.stringify(RATES));
+  alert("Rates updated successfully!");
+  renderProducts(); // Refresh UI with new rates
 }
 
 function resetRates() {
-    if(confirm('Reset all rates to default?')) {
-        RATES = JSON.parse(JSON.stringify(DEFAULT_RATES));
-        localStorage.setItem('pk_rates', JSON.stringify(RATES));
-        renderAdminPanel();
-        renderProducts();
-    }
+  if (confirm("Reset all rates to default?")) {
+    RATES = JSON.parse(JSON.stringify(DEFAULT_RATES));
+    localStorage.setItem("pk_rates", JSON.stringify(RATES));
+    renderAdminPanel();
+    renderProducts();
+  }
+}
+
+// --- Three.js Background ---
+function initThreeBackground() {
+  const container = document.getElementById("canvas-container");
+  if (!container || !window.THREE) return;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000,
+  );
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  container.appendChild(renderer.domElement);
+
+  // Create floating particles
+  const geometry = new THREE.BufferGeometry();
+  const count = 600;
+  const posArray = new Float32Array(count * 3);
+
+  for (let i = 0; i < count * 3; i++) {
+    posArray[i] = (Math.random() - 0.5) * 25;
+  }
+
+  geometry.setAttribute("position", new THREE.BufferAttribute(posArray, 3));
+  const material = new THREE.PointsMaterial({
+    size: 0.03,
+    color: 0x1e293b, // Dark blue/slate
+    transparent: true,
+    opacity: 0.8,
+  });
+
+  const particles = new THREE.Points(geometry, material);
+  scene.add(particles);
+  camera.position.z = 5;
+
+  const animate = () => {
+    requestAnimationFrame(animate);
+    particles.rotation.y += 0.0005;
+    particles.rotation.x += 0.0002;
+    renderer.render(scene, camera);
+  };
+
+  animate();
+  window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
 }
 
 // --- Init ---
+renderCategories();
 renderProducts();
+initThreeBackground();
 lucide.createIcons();
